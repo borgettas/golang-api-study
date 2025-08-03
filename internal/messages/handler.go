@@ -18,37 +18,56 @@ func NewHandler(s *Service) *Handler {
 
 // Message representa a estrutura do corpo da requisição JSON.
 type Message struct {
-	Content string `json:"content"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Phone int `json:"phone"`
+}
+
+// ErrorResponse representa o formato padrão para as respostas de erro da API.
+type ErrorResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
+// sendErrorResponse é uma função de ajuda para enviar respostas de erro padronizadas.
+func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
+	w.WriteHeader(statusCode)
+	w.Header().Set("Content-Type", "application/json")
+	response := ErrorResponse{
+		Success: false,
+		Message: message,
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 // Handle lida com as requisições HTTP e delega a lógica para o serviço.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		sendErrorResponse(w, "Método não permitido", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var msg Message
-	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
-		http.Error(w, "Requisição JSON inválida", http.StatusBadRequest)
+	// Usa um map para decodificar o JSON e lidar com a natureza dinâmica da função de serviço.
+	var dynamicMsg map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&dynamicMsg); err != nil {
+		sendErrorResponse(w, "Requisição JSON inválida: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Chama o serviço para salvar a mensagem no banco de dados
-	if err := h.service.SaveMessage(msg.Content); err != nil {
-		http.Error(w, "Erro ao salvar a string", http.StatusInternalServerError)
+	// Chama o serviço para salvar os dados no banco de dados
+	if err := h.service.SaveDynamicMessages(dynamicMsg); err != nil {
+		sendErrorResponse(w, "Erro ao salvar a string no banco de dados: "+err.Error(), http.StatusInternalServerError)
 		log.Printf("Erro ao salvar mensagem: %v", err)
 		return
 	}
 
-	log.Printf("String salva com sucesso: '%s'", msg.Content)
+	log.Printf("Dados salvos com sucesso: %v", dynamicMsg)
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
 		"success": true,
-		"message": "String salva com sucesso no banco de dados!",
+		"message": "Dados salvos com sucesso no banco de dados!",
 	}
 	json.NewEncoder(w).Encode(response)
 }
-

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -32,20 +33,57 @@ func NewService(user, password, host, port, name string) (*Service, error) {
 }
 
 // SaveMessage salva uma string no banco de dados.
-func (s *Service) SaveMessage(content string) error {
-	insertStmt, err := s.db.Prepare("INSERT INTO messages (content) VALUES (?)")
-	if err != nil {
-		return fmt.Errorf("erro ao preparar a declaração SQL: %w", err)
-	}
-	defer insertStmt.Close()
+// func (s *Service) SaveMessage(content string) error {
+// func (s *Service) SaveMessage(content string) error {
+// 	insertStmt, err := s.db.Prepare("INSERT INTO messages (content) VALUES (?)")
+// 	if err != nil {
+// 		return fmt.Errorf("erro ao preparar a declaração SQL: %w", err)
+// 	}
+// 	defer insertStmt.Close()
 
-	_, err = insertStmt.Exec(content)
-	if err != nil {
-		return fmt.Errorf("erro ao executar a declaração: %w", err)
-	}
+// 	_, err = insertStmt.Exec(content)
+// 	if err != nil {
+// 		return fmt.Errorf("erro ao executar a declaração: %w", err)
+// 	}
 
-	return nil
+// 	return nil
+// }
+
+
+func (s *Service) SaveDynamicMessages(data map[string]interface{}) error {
+	// Constroi listas de colunas e placeholders dinamicamente
+    cols := make([]string, 0, len(data))
+    values := make([]interface{}, 0, len(data))
+    placeholders := make([]string, 0, len(data))
+
+    for col, val := range data {
+        cols = append(cols, col)
+        values = append(values, val)
+        placeholders = append(placeholders, "?")
+    }
+
+    // Constroi a query SQL
+    query := fmt.Sprintf(
+        "INSERT INTO messages (%s) VALUES (%s)",
+        strings.Join(cols, ", "),
+        strings.Join(placeholders, ", "),
+    )
+
+    insertStmt, err := s.db.Prepare(query)
+    if err != nil {
+        return fmt.Errorf("erro ao preparar a declaração SQL: %w", err)
+    }
+    defer insertStmt.Close()
+
+    // Passa a slice de interfaces para Exec
+    _, err = insertStmt.Exec(values...)
+    if err != nil {
+        return fmt.Errorf("erro ao executar a declaração: %w", err)
+    }
+
+    return nil
 }
+
 
 // CloseDB fecha a conexão com o banco de dados.
 func (s *Service) CloseDB() {
