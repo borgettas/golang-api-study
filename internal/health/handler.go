@@ -6,7 +6,6 @@ import (
 )
 
 // Handler define a estrutura para o manipulador HTTP do módulo de saúde (health).
-// Ele tem uma dependência do serviço de saúde para obter o tempo de atividade.
 type Handler struct {
 	service *Service
 }
@@ -16,20 +15,21 @@ func NewHandler(s *Service) *Handler {
 	return &Handler{service: s}
 }
 
-// Handle é o método principal que lida com as requisições HTTP para a rota de saúde.
+// Handle lida com as requisições HTTP para a rota de saúde.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
-	// Obtém o tempo de atividade do serviço
+	// Obtém o tempo de atividade e o status do banco de dados
 	uptime := h.service.GetUptime()
+	dbStatus := h.service.CheckDBHealth()
 
-	// Cria a resposta JSON com o tempo de atividade em um formato de string
 	response := map[string]interface{}{
-		"success":    true,
-		"status":     "UP",
-		"components": nil,
-		"uptime":     uptime.String(),
+		"success": true,
+		"status":  "online",
+		"uptime":  uptime.String(),
+		"dependencies": map[string]string{
+			"database": dbStatus,
+		},
 	}
 
-	// Envia a resposta
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)

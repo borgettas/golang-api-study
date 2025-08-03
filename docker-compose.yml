@@ -1,0 +1,36 @@
+services:
+  go:
+    build: 
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_NAME=seu_banco
+      - DB_USER=seu_usuario
+      - DB_PASSWORD=sua_senha_do_usuario
+      - DB_HOST=db
+      - DB_PORT=3306
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: seu_banco
+      MYSQL_USER: seu_usuario
+      MYSQL_PASSWORD: sua_senha_do_usuario
+      MYSQL_ROOT_PASSWORD: sua_senha_do_mysql
+      MYSQL_ROOT_HOST: '%'
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ./db/sql/messages.sql:/docker-entrypoint-initdb.d/messages.sql

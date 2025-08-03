@@ -13,8 +13,35 @@ build:
 
 # Executa o contêiner a partir da imagem
 run:
-	docker run -d -p $(PORT):$(PORT) --name $(CONTAINER_NAME) $(IMAGE_NAME)
+	docker network create go-mysql-network || true
+	
+	docker run -d -p 3306:3306 \
+	--name mysql-instance \
+	--network go-mysql-network \
+	-e MYSQL_ROOT_PASSWORD=sua_senha_do_mysql \
+	-e MYSQL_DATABASE=seu_banco \
+	mysql:8.0
+	
+	docker run -d -p 8080:8080 \
+	--name go-api-instance \
+	--network go-mysql-network \
+	-e DB_USER=root \
+	-e DB_PASSWORD=sua_senha_do_mysql \
+	-e DB_HOST=mysql-instance \
+	-e DB_PORT=3306 \
+	-e DB_NAME=seu_banco \
+	$(IMAGE_NAME)
 
+# 	docker run -d -p $(PORT):$(PORT) --name $(CONTAINER_NAME) $(IMAGE_NAME)
+
+# 	docker run -it --rm -p $(PORT):$(PORT) --name $(CONTAINER_NAME) \
+# 	-e DB_USER=seu_usuario \
+# 	-e DB_PASSWORD=sua_senha_do_usuario \
+# 	-e DB_HOST=localhost \
+# 	-e DB_PORT=3306 \
+# 	-e DB_NAME=seu_banco \
+# 	$(IMAGE_NAME)
+# 	--entrypoint /bin/sh 
 # Remove o contêiner
 stop:
 	docker stop $(CONTAINER_NAME)
