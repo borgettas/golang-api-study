@@ -32,8 +32,9 @@ func main() {
 	healthHandler := health.NewHandler(healthService)
 
 	// Define os endpoints da API
-	http.HandleFunc("/putter", messageHandler.Handle)
 	http.HandleFunc("/health", healthHandler.Handle)
+	http.HandleFunc("/putter", messageHandler.Handle)
+	http.HandleFunc("/getter", messageHandler.GetMessagesHandler)
 
 	fmt.Println("Servidor iniciado em http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

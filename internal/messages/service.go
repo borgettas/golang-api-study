@@ -33,23 +33,23 @@ func NewService(user, password, host, port, name string) (*Service, error) {
 }
 
 // SaveMessage salva uma string no banco de dados.
-// func (s *Service) SaveMessage(content string) error {
-// func (s *Service) SaveMessage(content string) error {
-// 	insertStmt, err := s.db.Prepare("INSERT INTO messages (content) VALUES (?)")
-// 	if err != nil {
-// 		return fmt.Errorf("erro ao preparar a declaração SQL: %w", err)
-// 	}
-// 	defer insertStmt.Close()
+func (s *Service) SaveMessage(name string, email string, phone int) error {
+	insertStmt, err := s.db.Prepare("INSERT INTO messages (name, email, phone) VALUES (?, ?, ?)")
+	if err != nil {
+		return fmt.Errorf("erro ao preparar a declaração SQL: %w", err)
+	}
+	defer insertStmt.Close()
 
-// 	_, err = insertStmt.Exec(content)
-// 	if err != nil {
-// 		return fmt.Errorf("erro ao executar a declaração: %w", err)
-// 	}
+	_, err = insertStmt.Exec(name, email, phone)
+	if err != nil {
+		return fmt.Errorf("erro ao executar a declaração: %w", err)
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
-
+// SaveDynamicMessages salva um número dinâmico de strings no banco de dados.
+// NOTA: A função foi adaptada para usar uma lista de argumentos de tipos variados (interface{}).
 func (s *Service) SaveDynamicMessages(data map[string]interface{}) error {
 	// Constroi listas de colunas e placeholders dinamicamente
     cols := make([]string, 0, len(data))
@@ -82,6 +82,31 @@ func (s *Service) SaveDynamicMessages(data map[string]interface{}) error {
     }
 
     return nil
+}
+
+// GetMessages busca e retorna todas as mensagens do banco de dados.
+func (s *Service) GetMessages() ([]MessageResponse, error) {
+    rows, err := s.db.Query("SELECT id, name, email, phone, created_at FROM messages")
+    if err != nil {
+        return nil, fmt.Errorf("erro ao executar a consulta: %w", err)
+    }
+    defer rows.Close()
+
+    var messages []MessageResponse
+    for rows.Next() {
+        var msg MessageResponse
+        // Usando ponteiros para escanear os dados, o que elimina a necessidade de ifs
+        if err := rows.Scan(&msg.ID, &msg.Name, &msg.Email, &msg.Phone, &msg.CreatedAt); err != nil {
+            return nil, fmt.Errorf("erro ao ler a linha: %w", err)
+        }
+        messages = append(messages, msg)
+    }
+    
+    if err := rows.Err(); err != nil {
+        return nil, fmt.Errorf("erro durante a iteração das linhas: %w", err)
+    }
+
+    return messages, nil
 }
 
 

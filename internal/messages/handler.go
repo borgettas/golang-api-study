@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -16,12 +17,16 @@ func NewHandler(s *Service) *Handler {
 	return &Handler{service: s}
 }
 
-// Message representa a estrutura do corpo da requisição JSON.
-type Message struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Phone int `json:"phone"`
+// Message representa o formato de resposta para o endpoint GET.
+// Campos que podem ser nulos no banco de dados são agora representados por tipos do pacote sql.
+type MessageResponse struct {
+    ID        int            `json:"id"`
+    Name      sql.NullString `json:"name"`
+    Email     sql.NullString `json:"email"`
+    Phone     sql.NullInt64  `json:"phone"`
+    CreatedAt string         `json:"created_at"`
 }
+
 
 // ErrorResponse representa o formato padrão para as respostas de erro da API.
 type ErrorResponse struct {
@@ -70,4 +75,22 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		"message": "Dados salvos com sucesso no banco de dados!",
 	}
 	json.NewEncoder(w).Encode(response)
+}
+
+// GetMessagesHandler lida com as requisições GET para o endpoint de mensagens.
+func (h *Handler) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodGet {
+        sendErrorResponse(w, "Método não permitido", http.StatusMethodNotAllowed)
+        return
+    }
+
+    messages, err := h.service.GetMessages()
+    if err != nil {
+        sendErrorResponse(w, "Erro ao buscar mensagens: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(messages)
 }
