@@ -1,2 +1,2 @@
 health:
-	curl http://localhost:$(PORT)/health
+	curl http://localhost:8080/health
