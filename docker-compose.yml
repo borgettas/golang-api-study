@@ -34,3 +34,4 @@ services:
       retries: 10
     volumes:
       - ./db/sql/messages.sql:/docker-entrypoint-initdb.d/messages.sql
+    command: --default-authentication-plugin=caching_sha2_password
