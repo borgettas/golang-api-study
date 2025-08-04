@@ -23,7 +23,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string]interface{}{
 		"success": true,
-		"status":  "online",
+		"status":  "UP",
 		"uptime":  uptime.String(),
 		"dependencies": map[string]string{
 			"database": dbStatus,
